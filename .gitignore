@@ -9,6 +9,10 @@ esp-idf/
 .espressif/
 .setup_done
 
+# 离线安装包（可选，自己决定是否分发给队友）
+esp-idf-*.zip
+_idf_extract/
+
 # ---------- ESP-IDF 构建生成物 ----------
 build/
 sdkconfig
