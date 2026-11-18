@@ -1,0 +1,33 @@
+menu "ESP-NOW 主机配置（hub）"
+
+    choice HUB_LED_TYPE
+        prompt "板载 LED 类型"
+        default HUB_LED_TYPE_WS2812
+        help
+            ESP32-S3-DevKitC-1 等开发板板载 WS2812 可编程 RGB 灯；
+            如果板子上是普通单色 LED，请选择“普通 GPIO LED”。
+
+        config HUB_LED_TYPE_WS2812
+            bool "WS2812 / SK6812 可编程 RGB LED"
+
+        config HUB_LED_TYPE_GPIO
+            bool "普通 GPIO LED"
+    endchoice
+
+    config HUB_LED_GPIO
+        int "板载 LED 使用的 GPIO 编号"
+        range 0 48
+        default 48 if HUB_LED_TYPE_WS2812
+        default 2 if HUB_LED_TYPE_GPIO
+        help
+            常见取值：
+            - ESP32-S3-DevKitC-1 v1.1 的 WS2812: 48
+            - ESP32-S3-DevKitC-1 v1.0 的 WS2812: 38
+            - 部分第三方 S3 板卡的普通 LED: 2
+
+    config HUB_LED_ACTIVE_LOW
+        bool "普通 LED 为低电平点亮"
+        depends on HUB_LED_TYPE_GPIO
+        default n
+
+endmenu

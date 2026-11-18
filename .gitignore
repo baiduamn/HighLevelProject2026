@@ -1,0 +1,63 @@
+# ============================================================
+#  ESP32 项目仓库忽略规则
+#  原则：能重新生成的、只在某台机器上成立的，都不提交
+# ============================================================
+
+# ---------- ESP-IDF 本体与工具链（由 setup.bat 还原）----------
+# esp-idf 是用固定 tag 下载的，不进仓库；版本号见 setup.bat 的 IDF_VER
+esp-idf/
+.espressif/
+.setup_done
+
+# ---------- ESP-IDF 构建生成物 ----------
+build/
+sdkconfig
+sdkconfig.old
+managed_components/
+dependencies.lock.bak
+*.bin
+*.elf
+*.map
+*.o
+*.a
+*.d
+flasher_args.json
+flash_args
+
+# ---------- 编辑器 / IDE ----------
+.vscode/
+.idea/
+.claude/settings.local.json
+*.code-workspace
+*.swp
+
+# ---------- 操作系统垃圾 ----------
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ---------- 硬件 / 3D 生成物 ----------
+# 源文件（.kicad_sch/.kicad_pcb/.kicad_pro/.step/.f3d）要提交，下面是生成的
+*-backups/
+*-backup/
+*.bak
+*.kicad_prl
+fp-info-cache
+*.stl
+*.gbr
+*.drl
+
+# ---------- 大文件 / 录像 ----------
+*.mkv
+*.mp4
+*.avi
+*.mov
+.~*
+
+# ---------- 密钥与本地配置（接 Wi-Fi / 传感器后一定会遇到）----------
+secrets.h
+credentials.h
+wifi_config.h
+.env
+*.pem
+*.key

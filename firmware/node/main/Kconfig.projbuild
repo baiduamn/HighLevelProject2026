@@ -1,0 +1,50 @@
+menu "ESP-NOW 从机配置"
+
+    config NODE_DEVICE_ID
+        int "从机编号（1 ~ 8，主机按编号区分颜色）"
+        range 1 8
+        default 1
+        help
+            烧录到不同从机时改成各自的编号，避免主机把多块板认成同一个。
+            主机最多同时区分 8 个从机。
+
+    config NODE_BUTTON_GPIO
+        int "按键 GPIO 编号"
+        range 0 48
+        default 0
+        help
+            默认 GPIO0，即开发板上的 BOOT 按键（注意：按住 BOOT 上电会进入下载模式，
+            请在设备启动完成后再按）。使用外接按键时改成对应引脚。
+
+    config NODE_BUTTON_ACTIVE_LOW
+        bool "按键低电平有效（按下接地）"
+        default y
+
+    choice NODE_LED_TYPE
+        prompt "板载 LED 类型"
+        default NODE_LED_TYPE_WS2812
+
+        config NODE_LED_TYPE_WS2812
+            bool "WS2812 / SK6812 可编程 RGB LED"
+
+        config NODE_LED_TYPE_GPIO
+            bool "普通 GPIO LED"
+    endchoice
+
+    config NODE_LED_GPIO
+        int "板载 LED 的 GPIO 编号"
+        range 0 48
+        default 48 if NODE_LED_TYPE_WS2812
+        default 2 if NODE_LED_TYPE_GPIO
+        help
+            常见取值：
+            - ESP32-S3-DevKitC-1 v1.1 的 WS2812: 48
+            - ESP32-S3-DevKitC-1 v1.0 的 WS2812: 38
+            - 部分第三方 S3 板卡的普通 LED: 2
+
+    config NODE_LED_ACTIVE_LOW
+        bool "普通 LED 为低电平点亮"
+        depends on NODE_LED_TYPE_GPIO
+        default n
+
+endmenu
