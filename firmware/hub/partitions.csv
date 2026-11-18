@@ -1,0 +1,7 @@
+# ESP32-S3 主机分区表（4MB Flash）
+# 应用区放大到 3MB，给 LVGL、字体和图片留空间。
+#
+# Name,   Type, SubType, Offset,   Size,     Flags
+nvs,      data, nvs,     0x9000,   0x6000,
+phy_init, data, phy,     0xf000,   0x1000,
+factory,  app,  factory, 0x10000,  0x300000,

@@ -1,0 +1,11 @@
+## 主机 UI 依赖：首次构建时由组件管理器自动下载到 managed_components/
+## （managed_components/ 不进仓库，dependencies.lock 会记录锁定版本）
+dependencies:
+  idf: ">=5.4"
+  lvgl/lvgl: "^9"
+  espressif/esp_lvgl_port: "^2"
+
+  ## 面板驱动：确定屏幕型号后，在 components.espressif.com 搜索对应组件，
+  ## 取消注释并填正确版本即可，例如：
+  # espressif/esp_lcd_gc9a01: "^1"
+  # espressif/esp_lcd_ili9341: "^1"

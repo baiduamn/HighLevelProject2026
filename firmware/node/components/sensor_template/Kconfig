@@ -1,0 +1,22 @@
+menu "Sensor template (copy this folder to start a new driver)"
+
+    config SENSOR_TEMPLATE_I2C_PORT
+        int "I2C port"
+        range 0 1
+        default 0
+
+    config SENSOR_TEMPLATE_I2C_ADDR
+        hex "I2C address"
+        default 0x44
+
+    config SENSOR_TEMPLATE_GPIO_SDA
+        int "I2C SDA GPIO"
+        range 0 48
+        default 8
+
+    config SENSOR_TEMPLATE_GPIO_SCL
+        int "I2C SCL GPIO"
+        range 0 48
+        default 9
+
+endmenu

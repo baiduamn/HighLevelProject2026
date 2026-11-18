@@ -146,18 +146,29 @@ exit /b 0
 
 rem ---------------- helpers ----------------
 :extract_zip
-if exist "esp-idf\export.bat" (
-    echo [1/3] esp-idf already present, skipping archive
+rem Consider esp-idf complete only if export.bat and a few submodule files exist
+set "IDF_OK=1"
+if not exist "esp-idf\export.bat" set "IDF_OK="
+if not exist "esp-idf\components\lwip\lwip\CMakeLists.txt" set "IDF_OK="
+if not exist "esp-idf\components\json\cJSON\cJSON.c" set "IDF_OK="
+if not exist "esp-idf\components\esp_wifi\lib\LICENSE" set "IDF_OK="
+if defined IDF_OK (
+    echo [1/3] esp-idf already present and complete, skipping archive
     exit /b 0
-)
-if exist "esp-idf" (
-    echo [FAIL] The esp-idf folder exists but is incomplete.
-    echo        Delete it and run this script again.
-    exit /b 1
 )
 if not exist "%IDF_ZIP%" (
     echo [FAIL] IDF_ZIP points to a missing file: %IDF_ZIP%
     exit /b 1
+)
+if exist "esp-idf" (
+    echo [1/3] Found a partial esp-idf, removing it before extracting ...
+    attrib -r -s -h "esp-idf\*.*" /s /d >nul 2>&1
+    rmdir /s /q "esp-idf"
+    if exist "esp-idf" (
+        echo [FAIL] Could not remove the partial esp-idf folder.
+        echo        Close any program using it, delete it manually, then run again.
+        exit /b 1
+    )
 )
 echo [1/3] Extracting %IDF_ZIP% ... ^(this may take a few minutes^)
 set "ZIP_TMP=%ROOT%\_idf_extract"

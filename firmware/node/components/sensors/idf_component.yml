@@ -1,0 +1,9 @@
+## 从机传感器依赖：确定型号后在这里加一行，构建时自动下载。
+## 组件仓库：https://components.espressif.com
+##
+## 示例（取消注释并改成实际型号 / 版本）：
+##   espressif/aht20: "^1"
+##   espressif/mpu6050: "^1"
+##   espressif/bmp280: "^1"
+dependencies:
+  idf: ">=5.4"

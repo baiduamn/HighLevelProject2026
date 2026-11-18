@@ -21,6 +21,7 @@
 
 #include "espnow_link.h"
 #include "status_led.h"
+#include "ui.h"
 
 static const char *TAG = "hub";
 
@@ -130,6 +131,9 @@ static void report_event(const hub_event_t *event)
              event->mac[0], event->mac[1], event->mac[2],
              event->mac[3], event->mac[4], event->mac[5]);
     ESP_LOGI(TAG, "Onboard LED blinking for 3 s ...");
+
+    /* 面板接好后这里会真正更新 LVGL 界面；现在只打日志 */
+    ui_update_node(event->device_id, event->seq);
 }
 
 static void hub_task(void *arg)
@@ -188,6 +192,7 @@ void app_main(void)
     ESP_ERROR_CHECK(espnow_link_init());
     ESP_ERROR_CHECK(status_led_init(CONFIG_HUB_LED_GPIO, HUB_LED_TYPE,
                                     HUB_LED_ACTIVE_LOW, 0, 64, 0));
+    ESP_ERROR_CHECK(ui_init());
     ESP_ERROR_CHECK(espnow_link_set_rx_cb(on_espnow_recv));
 
     BaseType_t ret = xTaskCreate(hub_task, "hub_task", 4096, NULL, 5, NULL);

@@ -39,7 +39,18 @@ tools\setup.bat        :: 首次约 10-20 分钟，只跑一次
 highLevelProject/
 ├── firmware/
 │   ├── hub/                      # 主机固件（target: esp32s3）
+│   │   ├── components/
+│   │   │   ├── bsp/              # 板级支持：引脚、LCD、触摸、背光
+│   │   │   └── ui/               # LVGL 界面层（依赖自动下载）
+│   │   ├── main/
+│   │   ├── partitions.csv        # 自定义分区表（app 3MB）
+│   │   └── sdkconfig.defaults
 │   ├── node/                     # 从机固件（target: esp32s3）
+│   │   ├── components/
+│   │   │   ├── sensors/          # 传感器统一接口（驱动按型号加）
+│   │   │   └── sensor_template/  # 自己写驱动的模板，复制后改名
+│   │   ├── main/
+│   │   └── sdkconfig.defaults
 │   ├── components/
 │   │   └── espnow_link/          # 共享组件：ESP-NOW 封装、按键消抖、状态 LED
 │   └── cmake/
@@ -60,8 +71,98 @@ highLevelProject/
 └── README.md
 ```
 
-`hub` 和 `node` 通过 `EXTRA_COMPONENT_DIRS` 共用 `firmware/components/espnow_link`，
-协议、按键和 LED 代码只维护一份。
+组件按作用域分层，ESP-IDF 会自动扫描 `<工程>/main`、`<工程>/components`
+和 `EXTRA_COMPONENT_DIRS`，**不需要改任何 CMakeLists**：
+
+| 目录 | 范围 | 放什么 |
+|---|---|---|
+| `firmware/components/` | 主从共享 | 协议、ESP-NOW、通用工具 |
+| `firmware/hub/components/` | 仅主机 | `bsp`（引脚/屏幕）、`ui`（LVGL） |
+| `firmware/node/components/` | 仅从机 | 传感器驱动 |
+
+---
+
+## 1.1 驱动与第三方库（自动下载）
+
+第三方组件走 ESP-IDF 组件管理器，**写一行依赖，构建时自动下载**，
+不要把源码抄进仓库：
+
+```yaml
+# firmware/hub/components/ui/idf_component.yml
+dependencies:
+  idf: ">=5.4"
+  lvgl/lvgl: "^9"
+  espressif/esp_lvgl_port: "^2"
+```
+
+```yaml
+# firmware/node/components/sensors/idf_component.yml
+dependencies:
+  idf: ">=5.4"
+  # 选好型号后加一行，例如：
+  # espressif/aht20: "^1"
+```
+
+- 组件仓库：<https://components.espressif.com>
+- `managed_components/` 由构建生成，**不提交**
+- `dependencies.lock` **要提交**，用来锁死版本
+- 需要改源码的驱动，fork 后放到对应工程的 `components/` 下，并改个不重名的名字
+
+---
+
+## 1.2 自己写传感器驱动
+
+模板在 [`firmware/node/components/sensor_template/`](firmware/node/components/sensor_template/)，
+按它的 `README.md` 五步操作即可。
+
+核心结构：
+
+```
+firmware/node/components/
+├── sensors/               # 统一接口：sensors_init() / sensors_read()
+├── sensor_sht3x/          # 一颗传感器一个组件（直接子目录！）
+│   ├── CMakeLists.txt
+│   ├── Kconfig
+│   ├── include/sensor_sht3x.h
+│   └── sensor_sht3x.c
+└── sensor_bmp280/
+```
+
+几条硬规则：
+
+- **ESP-IDF 只扫描 `components/` 的下一层**。`components/sensors/sht3x/` 这种嵌套
+  不会被识别，驱动必须是 `components/` 的直接子目录。
+- **组件名 = 目录名**，起名别和组件仓库里的同名（如 `lvgl`、`esp_lcd_*`）。
+- 驱动只负责和芯片通信，**不引用 ESP-NOW / `node_id` / 上报逻辑**。
+- 只在 `.c` 里用到的依赖写 `PRIV_REQUIRES`，避免上层重新编译。
+- I2C/SPI 传输是阻塞的，**不要放在中断或 ESP-NOW 回调里**。
+- 厂商给的源码也可以套进这个结构，保留原始 LICENSE。
+
+对接统一接口（换传感器时 `main` 不用动）：
+
+```cmake
+# sensors/CMakeLists.txt
+idf_component_register(
+    SRCS "sensors.c"
+    INCLUDE_DIRS "include"
+    PRIV_REQUIRES sensor_sht3x
+)
+```
+
+```c
+// sensors.c
+#include "sensor_sht3x.h"
+
+esp_err_t sensors_read(sensor_sample_t *out)
+{
+    ESP_RETURN_ON_ERROR(sht3x_read(&out->temperature_c, &out->humidity_rh),
+                        TAG, "read failed");
+    return ESP_OK;
+}
+```
+
+> 自己写的驱动是**仓库源码**，正常提交；从组件管理器下载的放
+> `managed_components/`，不提交。两者的区别就这一条。
 
 ---
 
@@ -100,6 +201,9 @@ cd firmware\hub
 idf.py build
 ```
 
+> 改了 `sdkconfig.defaults` 或 `partitions.csv` 后，必须删除该工程的 `sdkconfig`
+> （或执行 `idf.py fullclean`），否则旧配置不会更新。
+
 ### 不用 ESP-IDF 烧录
 
 编译后每个工程都会生成 `build/merged.bin`（bootloader + 分区表 + app 已合并），
@@ -110,7 +214,20 @@ esptool.py --chip esp32s3 -p COM5 -b 460800 write_flash 0x0 firmware\hub\build\m
 ```
 
 图形工具（Flash Download Tool）选对芯片，在 `0x0` 添加对应的 `merged.bin`，
-Flash 配置 DIO / 80MHz / 2MB 即可。
+Flash 配置 DIO / 80MHz / **4MB** 即可。
+
+### 分区表
+
+主机使用自定义分区表 [`firmware/hub/partitions.csv`](firmware/hub/partitions.csv)：
+
+| 分区 | 偏移 | 大小 | 用途 |
+|---|---|---|---|
+| nvs | 0x9000 | 24 KB | 参数存储 |
+| phy_init | 0xF000 | 4 KB | 射频校准 |
+| factory | 0x10000 | **3 MB** | 应用（原来只有 1 MB，LVGL 放不下） |
+
+Flash 按 **4MB** 配置（S3 模组最小 4MB，8/16MB 板子也能用）。
+如果以后要 OTA，可以改成双 app 分区；要存图片/配置，可以在 0x310000 之后加 `storage` 分区。
 
 ---
 
