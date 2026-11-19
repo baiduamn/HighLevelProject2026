@@ -50,8 +50,14 @@ exit /b 0
 echo.
 echo ===== Building %~1  (target: %~2) =====
 pushd "%ROOT%\%~1"
+set "RC=0"
 idf.py -DIDF_TARGET=%~2 build
-set "RC=%errorlevel%"
+if errorlevel 1 set "RC=1"
+if "%RC%"=="0" (
+    echo       merging bootloader + partition table + app ...
+    idf.py merge-bin -o merged.bin
+    if errorlevel 1 set "RC=1"
+)
 popd
 if not "%RC%"=="0" exit /b 1
 exit /b 0

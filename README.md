@@ -206,8 +206,12 @@ idf.py build
 
 ### 不用 ESP-IDF 烧录
 
-编译后每个工程都会生成 `build/merged.bin`（bootloader + 分区表 + app 已合并），
+`build_all.bat` 会在编译后自动执行 `idf.py merge-bin`，每个工程生成
+`build/merged.bin`（bootloader + 分区表 + app 已合并），
 用任何烧录工具在 **0x0** 写入这一个文件即可：
+
+> 单独执行 `idf.py build` 时**不会**自动合并，需要再跑一次
+> `idf.py merge-bin -o merged.bin`。
 
 ```bat
 esptool.py --chip esp32s3 -p COM5 -b 460800 write_flash 0x0 firmware\hub\build\merged.bin
